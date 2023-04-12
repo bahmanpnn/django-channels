@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'chat_app',
     'channels',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
