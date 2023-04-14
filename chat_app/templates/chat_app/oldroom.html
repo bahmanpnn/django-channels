@@ -1,0 +1,67 @@
+<!-- chat/templates/chat/room.html -->
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+</head>
+<body>
+<textarea id="chat-log" cols="100" rows="20"></textarea><br>
+<input id="chat-message-input" type="text" size="100"><br>
+<input id="chat-message-submit" type="button" value="Send">
+{{ room_name|json_script:"room-name" }}
+<script src="{% static 'reconnecting-websocket.js' %}"></script>
+<script>
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+
+    var username =
+    {{ username }}
+    const chatSocket = new ReconnectingWebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/chat/'
+        + roomName
+        + '/'
+    );
+    chatSocket.onopen = function (e) {
+        chatSocket.send(JSON.stringify({
+            'command': 'fetch_message',
+        }));
+    }
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        if (data['command'] == 'fetch_message') {
+            for (let i = data['message'].length - 1; i >= 0; i--) {
+                document.querySelector('#chat-log').value += (data['message'][i]['content'] + '\n');
+            }
+        } else {
+            document.querySelector('#chat-log').value += (data['message'] + '\n');
+        }
+    };
+
+    chatSocket.onclose = function (e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function (e) {
+        if (e.keyCode === 13) {  // enter, return
+            document.querySelector('#chat-message-submit').click();
+        }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function (e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value;
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'command': 'new_message',
+            'username': username
+        }));
+        messageInputDom.value = '';
+    };
+</script>
+</body>
+</html>
